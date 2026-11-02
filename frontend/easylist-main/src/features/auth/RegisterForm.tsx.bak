@@ -1,0 +1,253 @@
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Store, Mail, Lock, Eye, EyeOff, ChevronRight, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { ROUTES } from '../../routes/paths';
+
+interface RegisterFormProps {
+  onSuccess?: (email: string) => void;
+  onSwitchToLogin?: () => void;
+}
+
+export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin }) => {
+  const navigate = useNavigate();
+
+  const [shopName, setShopName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (!shopName.trim()) {
+      setError('Shop Name is required');
+      return;
+    }
+
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError('Please provide a valid email address');
+      return;
+    }
+
+    if (!password || password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    setIsLoading(true);
+
+    setTimeout(() => {
+      setIsLoading(false);
+      setSuccess(true);
+      if (onSuccess) onSuccess(email.trim());
+      setTimeout(() => {
+        navigate(ROUTES.LOGIN);
+      }, 700);
+    }, 600);
+  };
+
+  return (
+    <div className="w-full max-w-[1080px] bg-white rounded-[24px] sm:rounded-[32px] shadow-[0_12px_45px_rgba(17,28,53,0.08)] border border-[#E2E8F0]/80 p-3 sm:p-4 lg:p-5 flex flex-col lg:flex-row gap-4 sm:gap-6 lg:gap-8 overflow-hidden">
+      {/* LEFT PANE */}
+      <div className="w-full lg:w-[48%] xl:w-[47%] bg-[#111C35] rounded-[20px] sm:rounded-[24px] p-6 sm:p-8 lg:p-10 flex flex-col justify-between relative overflow-hidden text-white shadow-inner">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[#087BFA]/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+
+        <div>
+          <div className="flex items-center gap-3">
+            <img
+              src="/images/EasyList logo.png"
+              alt="EasyList Logo"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl object-contain shadow-md"
+            />
+            <span className="text-xl sm:text-2xl font-bold font-heading tracking-tight text-white select-none">
+              Easy<span className="text-[#087BFA]">List</span>
+            </span>
+          </div>
+
+          <div className="mt-7 sm:mt-10">
+            <h2 className="text-2xl sm:text-3xl lg:text-[32px] font-bold text-white font-heading leading-tight tracking-tight">
+              From Handwritten <br />
+              to <span className="text-[#087BFA]">Digital.</span>
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-300 font-normal mt-3 leading-relaxed max-w-sm">
+              Turn handwritten orders into editable product lists in seconds.
+            </p>
+          </div>
+        </div>
+
+        <div className="my-6 sm:my-8 flex items-center justify-center">
+          <img
+            src="/images/EasyList login image.png"
+            alt="Handwritten to Digital Order Conversion"
+            className="w-full max-w-[320px] sm:max-w-[360px] lg:max-w-[390px] object-contain drop-shadow-2xl select-none"
+          />
+        </div>
+
+        <div className="pt-2 sm:pt-4 border-t border-slate-700/40 text-center">
+          <span className="text-[11px] sm:text-xs text-slate-400 font-medium tracking-wide">
+            A product by Avenzo Technologies
+          </span>
+        </div>
+      </div>
+
+      {/* RIGHT PANE: Register Form */}
+      <div className="w-full lg:w-[52%] xl:w-[53%] bg-white flex flex-col justify-center items-center p-4 sm:p-8 lg:p-12">
+        <div className="w-full max-w-[380px] sm:max-w-[400px]">
+          <div className="flex justify-center mb-4 sm:mb-5">
+            <div className="w-16 h-16 rounded-full bg-[#111C35] flex items-center justify-center shadow-md p-3 ring-4 ring-[#F0F5FC]">
+              <img
+                src="/images/EasyList logo.png"
+                alt="EasyList"
+                className="w-full h-full object-contain"
+              />
+            </div>
+          </div>
+
+          <div className="text-center mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold font-heading text-[#111827] tracking-tight">
+              Create <span className="text-[#087BFA]">Account</span>
+            </h1>
+            <p className="text-xs sm:text-sm text-[#64748B] mt-1.5 font-normal">
+              Register your wholesale grocery shop on EasyList
+            </p>
+          </div>
+
+          {error && (
+            <div className="mb-5 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-red-600" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {success && (
+            <div className="mb-5 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+              <span>Account created! Redirecting to sign in...</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} noValidate className="space-y-4 sm:space-y-5">
+            <div>
+              <label
+                htmlFor="shop-name-input"
+                className="block text-xs sm:text-sm font-semibold text-[#111827] mb-1.5"
+              >
+                Shop Name
+              </label>
+              <div className="relative flex items-center">
+                <span className="absolute left-3.5 text-[#8296B5] pointer-events-none flex items-center">
+                  <Store className="w-4 h-4 sm:w-5 sm:h-5" />
+                </span>
+                <input
+                  id="shop-name-input"
+                  type="text"
+                  value={shopName}
+                  onChange={(e) => setShopName(e.target.value)}
+                  placeholder="e.g. Sri Gokulam Wholesale"
+                  className="w-full pl-10 sm:pl-11 pr-4 py-2.5 sm:py-3.5 bg-white border border-[#DCE5F2] focus:border-[#087BFA] focus:ring-[#087BFA]/15 rounded-xl text-sm sm:text-base text-[#111827] placeholder-[#8296B5] transition-all focus:outline-none focus:ring-4 hover:border-[#B8CDE6]"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="register-email-input"
+                className="block text-xs sm:text-sm font-semibold text-[#111827] mb-1.5"
+              >
+                Email address
+              </label>
+              <div className="relative flex items-center">
+                <span className="absolute left-3.5 text-[#8296B5] pointer-events-none flex items-center">
+                  <Mail className="w-4 h-4 sm:w-5 sm:h-5" />
+                </span>
+                <input
+                  id="register-email-input"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter shop owner email"
+                  className="w-full pl-10 sm:pl-11 pr-4 py-2.5 sm:py-3.5 bg-white border border-[#DCE5F2] focus:border-[#087BFA] focus:ring-[#087BFA]/15 rounded-xl text-sm sm:text-base text-[#111827] placeholder-[#8296B5] transition-all focus:outline-none focus:ring-4 hover:border-[#B8CDE6]"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="register-password-input"
+                className="block text-xs sm:text-sm font-semibold text-[#111827] mb-1.5"
+              >
+                Password
+              </label>
+              <div className="relative flex items-center">
+                <span className="absolute left-3.5 text-[#8296B5] pointer-events-none flex items-center">
+                  <Lock className="w-4 h-4 sm:w-5 sm:h-5" />
+                </span>
+                <input
+                  id="register-password-input"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Create a password (min. 6 chars)"
+                  className="w-full pl-10 sm:pl-11 pr-11 py-2.5 sm:py-3.5 bg-white border border-[#DCE5F2] focus:border-[#087BFA] focus:ring-[#087BFA]/15 rounded-xl text-sm sm:text-base text-[#111827] placeholder-[#8296B5] transition-all focus:outline-none focus:ring-4 hover:border-[#B8CDE6]"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 text-[#8296B5] hover:text-[#111827] transition-colors p-1 rounded-md"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Eye className="w-4 h-4 sm:w-5 sm:h-5" />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading || success}
+              className="w-full py-3 sm:py-3.5 px-6 rounded-xl bg-[#087BFA] hover:bg-[#076ee2] active:bg-[#0660c5] text-white font-semibold text-sm sm:text-base flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(8,123,250,0.3)] hover:shadow-[0_6px_20px_rgba(8,123,250,0.38)] active:scale-[0.99] transition-all cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed mt-5"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Creating Account...</span>
+                </>
+              ) : (
+                <>
+                  <span>Create Account</span>
+                  <ChevronRight className="w-5 h-5 stroke-[2.5]" />
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="text-center text-xs sm:text-sm text-[#64748B] pt-6 sm:pt-7 font-normal">
+            Already have an account?{' '}
+            {onSwitchToLogin ? (
+              <button
+                type="button"
+                onClick={onSwitchToLogin}
+                className="text-[#087BFA] font-semibold hover:underline ml-0.5 cursor-pointer bg-transparent border-none p-0 inline"
+              >
+                Sign In
+              </button>
+            ) : (
+              <Link
+                to={ROUTES.LOGIN}
+                className="text-[#087BFA] font-semibold hover:underline ml-0.5"
+              >
+                Sign In
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

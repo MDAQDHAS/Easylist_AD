@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: easylist-backend
+    runtime: node
+    rootDir: backend
+    plan: free
+    region: singapore
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: FIREBASE_PROJECT_ID
+        value: easylist-588d9
+      - key: FRONTEND_URL
+        value: https://easylist-d1553.web.app
+      - key: SUPABASE_URL
+        value: https://eqirxktohtqvrfkxdmfk.supabase.co
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash-lite
+      - key: GEMINI_FALLBACK_MODEL
+        value: gemini-3.5-flash
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ACCOUNT_LINKING_RATE_LIMIT_HMAC_KEY
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
