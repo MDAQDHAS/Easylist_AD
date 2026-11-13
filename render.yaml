@@ -31,3 +31,4 @@ services:
         sync: false
       - key: FIREBASE_PRIVATE_KEY
         sync: false
+

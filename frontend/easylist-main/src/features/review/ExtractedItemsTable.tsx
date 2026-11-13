@@ -102,8 +102,8 @@ export const ExtractedItemsTable: React.FC<ExtractedItemsTableProps> = ({
               {isTranslating
                 ? 'Converting...'
                 : currentLanguage === 'ta'
-                ? 'Show Original Text'
-                : 'Show Normalized Name'}
+                ? 'Show English Names'
+                : 'Show Original Text'}
             </span>
           </button>
 
@@ -208,7 +208,7 @@ export const ExtractedItemsTable: React.FC<ExtractedItemsTableProps> = ({
                           onChange={(e) =>
                             onUpdateItem(item.id, { name: e.target.value })
                           }
-                          placeholder="e.g. Toor Dal / துவரம் பருப்பு"
+                          placeholder={currentLanguage === 'ta' ? 'e.g. துவரம் பருப்பு' : 'e.g. Toor Dal'}
                           className={`w-full h-9 px-3 rounded-lg border text-xs sm:text-sm text-[#111827] font-medium transition-all focus:outline-none focus:ring-2 focus:ring-[#5046F2]/30 ${
                             isNameMissing || isUncertain
                               ? 'border-amber-300 bg-white pr-7'
@@ -228,24 +228,18 @@ export const ExtractedItemsTable: React.FC<ExtractedItemsTableProps> = ({
                         )}
                       </div>
 
-                      {item.originalText && item.originalText.trim() && (
+                      {/* Display original handwritten text and language badges only when toggle is active (currentLanguage === 'ta') */}
+                      {currentLanguage === 'ta' && item.originalText && item.originalText.trim() && (
                         <div className="mt-1 text-[11px] text-slate-500 break-words leading-relaxed" title={item.originalText}>
                           Handwritten: <span className="font-medium text-slate-700">{item.originalText}</span>
                         </div>
                       )}
 
-                      {(item.englishName || item.tamilName) && (
+                      {currentLanguage === 'ta' && item.englishName && item.englishName !== item.name && (
                         <div className="mt-0.5 flex flex-wrap gap-1.5 text-[10px]">
-                          {item.englishName && item.englishName !== item.name && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-medium">
-                              EN: {item.englishName}
-                            </span>
-                          )}
-                          {item.tamilName && item.tamilName !== item.name && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 font-medium">
-                              தமிழ்: {item.tamilName}
-                            </span>
-                          )}
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-medium">
+                            EN: {item.englishName}
+                          </span>
                         </div>
                       )}
 

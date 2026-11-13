@@ -11,6 +11,7 @@ import {
   calculateOrderGrandTotal,
   createNewOrderItem,
   evaluateItemWarnings,
+  normalizeOcrItemsToEnglish,
   parsePositiveQuantity,
   sanitizeMoney,
   toggleItemsLanguage,
@@ -1055,6 +1056,90 @@ test('3-tier product naming and PDF layout: preserves originalText, tamilName, a
   assert.equal(manifest.items[0].tamilName, 'வரமிளகாய்');
   assert.equal(manifest.items[0].originalText, '50g வரமிளகாய் - 1/2 கி');
 });
+
+test('English by default: normalizeOcrItemsToEnglish sets English names, preserves originalText, and toggles cleanly', () => {
+  const rawOcrItems: OrderItem[] = [
+    {
+      id: 'item-101',
+      name: 'துவரம் பருப்பு',
+      originalText: '1. துவரம் பருப்பு 1 kg',
+      tamilName: 'துவரம் பருப்பு',
+      englishName: 'Toor Dal',
+      quantity: 1,
+      unit: 'kg',
+      unitPrice: 160,
+      total: 160,
+      confidence: 0.98,
+    },
+    {
+      id: 'item-102',
+      name: 'வரமிளகாய்',
+      originalText: '2. வரமிளகாய் 500g',
+      tamilName: 'வரமிளகாய்',
+      englishName: 'Dry Red Chilli',
+      quantity: 500,
+      unit: 'g',
+      unitPrice: 0,
+      total: 0,
+      confidence: 0.95,
+    },
+    {
+      id: 'item-103',
+      name: '356 Arival',
+      originalText: '3. 356 அரிவாள் 1 pcs',
+      tamilName: '356 அரிவாள்',
+      quantity: 1,
+      unit: 'pcs',
+      unitPrice: 250,
+      total: 250,
+      confidence: 0.75,
+      isUncertain: true,
+    },
+  ];
+
+  // 1. By default, items must be normalized to English
+  const englishByDefault = normalizeOcrItemsToEnglish(rawOcrItems);
+
+  assert.equal(englishByDefault[0].name, 'Toor Dal', 'Item 1 name must be English "Toor Dal"');
+  assert.equal(englishByDefault[0].originalText, '1. துவரம் பருப்பு 1 kg', 'Original handwritten text preserved');
+  assert.equal(englishByDefault[0].tamilName, 'துவரம் பருப்பு', 'Tamil name preserved');
+  assert.equal(englishByDefault[0].quantity, 1, 'Quantity preserved');
+  assert.equal(englishByDefault[0].unit, 'kg', 'Unit preserved');
+
+  assert.equal(englishByDefault[1].name, 'Dry Red Chilli', 'Item 2 name must be English "Dry Red Chilli"');
+  assert.equal(englishByDefault[1].quantity, 500, 'Quantity preserved');
+  assert.equal(englishByDefault[1].unit, 'g', 'Unit preserved');
+
+  // Item without englishName must safely fallback to its existing name without guessing
+  assert.equal(englishByDefault[2].name, '356 Arival', 'Uncertain item keeps its original extracted name without guessing');
+
+  // 2. Toggle to original text ("Show Original Text" clicked -> Tamil displayed)
+  const originalTamilView = toggleItemsLanguage(englishByDefault, true);
+  assert.equal(originalTamilView[0].name, '1. துவரம் பருப்பு 1 kg', 'Displays original handwritten Tamil text');
+  assert.equal(originalTamilView[0].quantity, 1, 'Quantity unchanged when toggled');
+  assert.equal(originalTamilView[0].unit, 'kg', 'Unit unchanged when toggled');
+  assert.equal(originalTamilView[1].name, '2. வரமிளகாய் 500g', 'Displays original handwritten Tamil text');
+
+  // 3. Toggle back to English ("Show English Names" clicked -> English restored)
+  const restoredEnglishView = toggleItemsLanguage(originalTamilView, false);
+  assert.equal(restoredEnglishView[0].name, 'Toor Dal', 'Restores English product name');
+  assert.equal(restoredEnglishView[0].originalText, '1. துவரம் பருப்பு 1 kg', 'Original text strictly preserved');
+  assert.equal(restoredEnglishView[1].name, 'Dry Red Chilli', 'Restores English product name');
+
+  // 4. User edits product name in English view: preserves originalText
+  const editedItem = applyItemUpdate(restoredEnglishView[0], { name: 'Premium Toor Dal' }, false);
+  assert.equal(editedItem.name, 'Premium Toor Dal', 'Displays updated English name');
+  assert.equal(editedItem.normalizedName, 'Premium Toor Dal', 'Stores updated normalized name');
+  assert.equal(editedItem.originalText, '1. துவரம் பருப்பு 1 kg', 'Does not overwrite or lose original handwritten Tamil text');
+  assert.equal(editedItem.tamilName, 'துவரம் பருப்பு', 'Tamil name remains intact');
+
+  // 5. Subsequent toggle to original text and back reflects both original text and updated edit
+  const toggleAfterEdit = toggleItemsLanguage([editedItem], true);
+  assert.equal(toggleAfterEdit[0].name, '1. துவரம் பருப்பு 1 kg', 'Shows original text when toggled to original');
+  const toggleBackAfterEdit = toggleItemsLanguage(toggleAfterEdit, false);
+  assert.equal(toggleBackAfterEdit[0].name, 'Premium Toor Dal', 'Restores user-edited English name when toggled back');
+});
+
 
 
 

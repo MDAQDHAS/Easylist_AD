@@ -2,7 +2,6 @@ import React, { useRef, useState, useEffect } from 'react';
 import {
   UploadCloud,
   Image as ImageIcon,
-  Camera,
   FileUp,
   X,
   FileCheck,
@@ -44,7 +43,6 @@ export const OrderUpload: React.FC<OrderUploadProps> = ({
   onFilesChange,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const extractionInFlightRef = useRef(false);
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<UploadedFileItem[]>(initialFiles);
@@ -146,9 +144,6 @@ export const OrderUpload: React.FC<OrderUploadProps> = ({
     processFiles(e.target.files);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
-    }
-    if (cameraInputRef.current) {
-      cameraInputRef.current.value = '';
     }
   };
 
@@ -305,17 +300,6 @@ export const OrderUpload: React.FC<OrderUploadProps> = ({
             onChange={handleFileChange}
           />
 
-          {/* Dedicated mobile camera capture input with rear environment camera preference */}
-          <input
-            ref={cameraInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            disabled={isExtracting}
-            onChange={handleFileChange}
-          />
-
           {/* Upload Cloud Icon */}
           <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#EEF2FF] text-[#5046F2] flex items-center justify-center mb-2.5 shadow-xs">
             <UploadCloud className="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.2]" />
@@ -328,26 +312,11 @@ export const OrderUpload: React.FC<OrderUploadProps> = ({
 
           {/* Secondary Text */}
           <p className="text-xs sm:text-sm text-[#64748B] mt-0.5 mb-3">
-            or capture with camera / choose from your device
+            or choose images from your device
           </p>
 
-          {/* Dual Upload Action Buttons: Mobile Camera & Gallery */}
+          {/* Upload Action Button: File Picker */}
           <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
-            <button
-              id="btn-take-photo"
-              type="button"
-              disabled={isExtracting}
-              onClick={(e) => {
-                e.stopPropagation();
-                cameraInputRef.current?.click();
-              }}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-[#C7D2FE] hover:bg-[#EEF2FF] active:bg-[#E0E7FF] text-[#5046F2] font-semibold text-xs sm:text-sm shadow-xs transition-all cursor-pointer disabled:opacity-50"
-              title="Snap photo directly with your camera"
-            >
-              <Camera className="w-4 h-4 text-[#5046F2]" />
-              <span>Take Photo</span>
-            </button>
-
             <button
               id="btn-choose-images"
               type="button"
@@ -378,28 +347,15 @@ export const OrderUpload: React.FC<OrderUploadProps> = ({
                 Selected Orders ({selectedFiles.length}/{MAX_IMAGES_PER_ORDER})
               </span>
               {selectedFiles.length < MAX_IMAGES_PER_ORDER && !isExtracting && (
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={isExtracting}
-                    onClick={() => cameraInputRef.current?.click()}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-[#5046F2] hover:underline cursor-pointer"
-                  >
-                    <Camera className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Take Photo</span>
-                    <span className="sm:hidden">Photo</span>
-                  </button>
-                  <span className="text-slate-300">·</span>
-                  <button
-                    type="button"
-                    disabled={isExtracting}
-                    onClick={() => fileInputRef.current?.click()}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-[#5046F2] hover:underline cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Add More</span>
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  disabled={isExtracting}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-[#5046F2] hover:underline cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add More</span>
+                </button>
               )}
             </div>
 

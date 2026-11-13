@@ -100,18 +100,34 @@ export function evaluateItemWarnings(item: OrderItem): {
  * Pure reducer helper that applies user edits to a single OrderItem,
  * preserves originalText, recalculates line total, and re-evaluates warnings.
  */
-export function applyItemUpdate(item: OrderItem, updates: Partial<OrderItem>): OrderItem {
+export function applyItemUpdate(
+  item: OrderItem,
+  updates: Partial<OrderItem>,
+  isOriginalView: boolean = false
+): OrderItem {
   const next: OrderItem = {
     ...item,
     ...updates,
-    // Always preserve originalText unless explicitly provided
+    // Always preserve originalText unless explicitly provided in updates
     originalText: updates.originalText !== undefined ? updates.originalText : item.originalText,
   };
 
   if ('name' in updates) {
-    next.name = String(updates.name ?? '');
-    if (next.normalizedName !== undefined) {
-      next.normalizedName = next.name;
+    const updatedName = String(updates.name ?? '');
+    next.name = updatedName;
+    if (isOriginalView) {
+      next.originalText = updatedName;
+      if (item.tamilName !== undefined) {
+        next.tamilName = updatedName;
+      }
+    } else {
+      next.normalizedName = updatedName;
+      next.englishName = updatedName;
+      // Do not overwrite or lose original Tamil text when editing English names
+      next.originalText = item.originalText;
+      if (item.tamilName !== undefined) {
+        next.tamilName = item.tamilName;
+      }
     }
   }
 
@@ -177,9 +193,9 @@ export function applyItemUpdate(item: OrderItem, updates: Partial<OrderItem>): O
 export function createNewOrderItem(initial?: Partial<OrderItem>): OrderItem {
   const safeInitial =
     initial &&
-    typeof initial === 'object' &&
-    !('nativeEvent' in initial) &&
-    !('target' in initial)
+      typeof initial === 'object' &&
+      !('nativeEvent' in initial) &&
+      !('target' in initial)
       ? initial
       : undefined;
 
@@ -195,8 +211,8 @@ export function createNewOrderItem(initial?: Partial<OrderItem>): OrderItem {
     safeInitial?.total !== undefined
       ? sanitizeMoney(safeInitial.total)
       : parsedQty !== null && unitPrice > 0
-      ? Math.round(parsedQty * unitPrice * 100) / 100
-      : 0;
+        ? Math.round(parsedQty * unitPrice * 100) / 100
+        : 0;
 
   const baseItem: OrderItem = {
     id:
@@ -230,6 +246,39 @@ export function calculateOrderGrandTotal(items: OrderItem[]): number {
 }
 
 /**
+ * Normalizes OCR items to display in English by default.
+ * Uses the existing normalized English product name from the OCR response
+ * (`item.englishName || item.normalizedName || item.name`).
+ * Strictly preserves `originalText` and `tamilName` without guessing or synthetic translation.
+ */
+export function normalizeOcrItemsToEnglish(items: OrderItem[]): OrderItem[] {
+  return items.map((item) => {
+    // English name priority: existing englishName -> normalizedName -> name
+    const englishName =
+      (typeof item.englishName === 'string' && item.englishName.trim()) ||
+      (typeof item.normalizedName === 'string' && item.normalizedName.trim()) ||
+      item.name ||
+      '';
+
+    // Original text priority: item.originalText -> item.tamilName -> item.name
+    const originalText =
+      (typeof item.originalText === 'string' && item.originalText.trim()) ||
+      (typeof item.tamilName === 'string' && item.tamilName.trim()) ||
+      item.name ||
+      '';
+
+    return {
+      ...item,
+      name: englishName,
+      normalizedName: englishName,
+      ...(item.englishName ? { englishName: item.englishName } : englishName ? { englishName } : {}),
+      originalText: originalText || item.originalText,
+      ...(item.tamilName ? { tamilName: item.tamilName } : {}),
+    };
+  });
+}
+
+/**
  * Toggle between normalized product name and originalText without ever overwriting originalText.
  */
 export function toggleItemsLanguage(
@@ -237,23 +286,26 @@ export function toggleItemsLanguage(
   showOriginal: boolean
 ): OrderItem[] {
   return items.map((item) => {
-    const original = item.originalText?.trim();
+    const original =
+      (typeof item.originalText === 'string' && item.originalText.trim()) ||
+      (typeof item.tamilName === 'string' && item.tamilName.trim());
     if (!original) return item;
 
     if (showOriginal) {
-      const savedNormalized = item.normalizedName ?? item.name;
+      const savedNormalized = item.normalizedName ?? item.englishName ?? item.name;
       return {
         ...item,
         normalizedName: savedNormalized,
         name: original,
-        originalText: item.originalText,
+        originalText: item.originalText || original,
       };
     }
 
+    const englishName = item.normalizedName ?? item.englishName ?? item.name;
     return {
       ...item,
-      name: item.normalizedName ?? item.name,
-      originalText: item.originalText,
+      name: englishName,
+      originalText: item.originalText || original,
     };
   });
 }
@@ -286,18 +338,18 @@ const STORAGE_KEY_ITEMS = 'easylist_workflow_items_v2';
 export const OrderWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [uploadedFiles, setUploadedFilesState] = useState<UploadedFileItem[]>([]);
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
-  const [currentLanguage, setCurrentLanguage] = useState<'ta' | 'en'>('ta');
+  const [currentLanguage, setCurrentLanguage] = useState<'ta' | 'en'>('en');
   const [isTranslating, setIsTranslating] = useState<boolean>(false);
   const [translationError, setTranslationError] = useState<string | null>(null);
 
-  // Initialize only reviewed workflow items; never present sample rows as OCR output.
+  // Initialize only reviewed workflow items; normalized to English by default.
   const [items, setItemsState] = useState<OrderItem[]>(() => {
     try {
       const saved = sessionStorage.getItem(STORAGE_KEY_ITEMS);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          return normalizeOcrItemsToEnglish(parsed);
         }
       }
     } catch (e) {
@@ -338,14 +390,17 @@ export const OrderWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const setItems = useCallback((newItems: OrderItem[]) => {
-    setItemsState(newItems);
+    const normalized = normalizeOcrItemsToEnglish(newItems);
+    setItemsState(normalized);
+    setCurrentLanguage('en');
   }, []);
 
   const updateItem = useCallback((id: string, updates: Partial<OrderItem>) => {
+    const isOriginal = currentLanguage === 'ta';
     setItemsState((prev) =>
-      prev.map((item) => (item.id === id ? applyItemUpdate(item, updates) : item))
+      prev.map((item) => (item.id === id ? applyItemUpdate(item, updates, isOriginal) : item))
     );
-  }, []);
+  }, [currentLanguage]);
 
   const addItem = useCallback((initial?: Partial<OrderItem>) => {
     const newItem = createNewOrderItem(initial);
@@ -365,21 +420,26 @@ export const OrderWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({
     setTranslationError(null);
 
     const hasOriginalText = items.some(
-      (item) => item.originalText && item.originalText.trim().length > 0
+      (item) =>
+        (item.originalText && item.originalText.trim().length > 0) ||
+        (item.tamilName && item.tamilName.trim().length > 0)
     );
 
     if (hasOriginalText) {
-      const showOriginal = currentLanguage === 'ta';
-      setItemsState((prev) => toggleItemsLanguage(prev, showOriginal));
-      setCurrentLanguage((prev) => (prev === 'ta' ? 'en' : 'ta'));
+      // Default view is 'en'. When currentLanguage is 'en', clicking the button ("Show Original Text")
+      // shows the original handwritten Tamil names (willShowOriginal: true) and sets currentLanguage to 'ta'.
+      // When currentLanguage is 'ta', clicking the button ("Show English Names")
+      // restores the English names (willShowOriginal: false) and sets currentLanguage to 'en'.
+      const willShowOriginal = currentLanguage === 'en';
+      setItemsState((prev) => toggleItemsLanguage(prev, willShowOriginal));
+      setCurrentLanguage(willShowOriginal ? 'ta' : 'en');
       setIsTranslating(false);
       return;
     }
 
     setIsTranslating(false);
-    setCurrentLanguage((prev) => (prev === 'ta' ? 'en' : 'ta'));
     setTranslationError(
-      'Original handwritten text matches current item names. You can edit product names directly in Tamil or English.'
+      'Original handwritten text matches current item names. You can edit product names directly.'
     );
   }, [items, currentLanguage]);
 
