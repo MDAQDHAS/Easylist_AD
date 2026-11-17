@@ -9,6 +9,7 @@ const app = express();
 
 const localOriginPattern = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 const firebaseHostingPattern = /^https:\/\/easylist-[a-z0-9-]+\.(web\.app|firebaseapp\.com)$/;
+const vercelHostingPattern = /^https:\/\/easylist[a-z0-9-]*\.vercel\.app$/;
 
 const allowedOrigins = [
   'https://easylist-588d9.web.app',
@@ -21,10 +22,15 @@ if (process.env.FRONTEND_URL) {
   allowedOrigins.push(process.env.FRONTEND_URL);
 }
 
+if (process.env.VERCEL_URL) {
+  allowedOrigins.push(`https://${process.env.VERCEL_URL}`);
+}
+
 function isOriginAllowed(origin: string): boolean {
   if (allowedOrigins.includes(origin)) return true;
   if (localOriginPattern.test(origin)) return true;
   if (firebaseHostingPattern.test(origin)) return true;
+  if (vercelHostingPattern.test(origin)) return true;
   return false;
 }
 

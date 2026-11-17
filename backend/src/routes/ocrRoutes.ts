@@ -407,7 +407,7 @@ export function createOcrRouter(options: OcrRouterOptions = {}): Router {
     ...protectedChain,
     uploadLimiter.middleware,
     createUploadMiddleware(),
-    (req, res) => {
+    async (req, res) => {
       const file = validateUploadedImage(req.file, res);
       if (!file) return;
 
@@ -469,7 +469,7 @@ export function createOcrRouter(options: OcrRouterOptions = {}): Router {
         job.updatedAt = Date.now();
       };
 
-      startOrJoinExtraction(contentHash, file, updateStage)
+      const extractionPromise = startOrJoinExtraction(contentHash, file, updateStage)
         .then((items) => {
           job.status = 'completed';
           job.stage = 'completed';
@@ -487,6 +487,18 @@ export function createOcrRouter(options: OcrRouterOptions = {}): Router {
           job.updatedAt = Date.now();
           job.expiresAt = job.updatedAt + JOB_TTL_MS;
         });
+
+      // On serverless environments (e.g. Vercel Functions), complete the extraction
+      // within the request lifecycle so in-memory jobs are never lost across instances.
+      if (process.env.VERCEL === '1') {
+        await extractionPromise;
+        if (job.status === 'failed') {
+          res.status(job.errorStatus ?? 503).json(serializeJob(job));
+          return;
+        }
+        res.status(200).json(serializeJob(job));
+        return;
+      }
 
       res.status(202).json(serializeJob(job));
     }
