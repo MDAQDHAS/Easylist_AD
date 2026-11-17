@@ -18,7 +18,7 @@ COPY tsconfig.json ./
 COPY src ./src
 
 # Compile TypeScript to JavaScript in /app/dist
-RUN npm run build
+RUN npm run compile
 
 # Prune devDependencies to keep only production runtime packages
 RUN npm prune --omit=dev

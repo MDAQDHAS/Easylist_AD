@@ -3,10 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "description": "EasyList backend API",
-  "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "compile": "tsc",
     "test": "tsx --test tests/**/*.test.ts",
     "start": "node dist/server.js"
   },
